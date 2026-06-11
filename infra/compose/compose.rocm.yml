@@ -1,0 +1,27 @@
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/containers/inference.rocm.Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    environment:
+      HSJS_PROVIDER_STUB_MODE: "false"
+      HSJS_PROVIDER_RUNTIME: "transformers"
+      HSJS_HF_DEVICE: "auto"
+      HSJS_HF_DTYPE: "float16"
+      HSJS_ARTIFACTS_DIR: "/workspace/.artifacts"
+    volumes:
+      - ../../.artifacts:/workspace/.artifacts:Z
+      - ~/.cache/huggingface:/root/.cache/huggingface:Z
+    ports:
+      - "8000:8000"
+  web:
+    image: docker.io/library/node:22-alpine
+    working_dir: /workspace/apps/web
+    command: sh -lc "npm install && npm run dev -- --host 0.0.0.0 --port 4173"
+    volumes:
+      - ../..:/workspace:Z
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api/v1
+    ports:
+      - "4173:4173"

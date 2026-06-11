@@ -1,0 +1,14 @@
+{
+  "name": "hvordan-sier-jeg-samisk",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace @hsjs/web",
+    "build:web": "npm run build --workspace @hsjs/web",
+    "dev:api": "cd apps/api && python -m uvicorn app.main:app --reload",
+    "lint:web": "npm run lint --workspace @hsjs/web"
+  }
+}

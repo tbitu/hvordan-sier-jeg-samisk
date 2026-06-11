@@ -1,0 +1,16 @@
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/containers/api.Dockerfile
+    environment:
+      HSJS_PROVIDER_STUB_MODE: "true"
+      HSJS_PROVIDER_RUNTIME: "transformers"
+      HSJS_HF_DEVICE: "auto"
+    ports:
+      - "8000:8000"
+  inference:
+    build:
+      context: ../..
+      dockerfile: infra/containers/inference.cuda.Dockerfile
+    profiles: ["dgx-spark"]

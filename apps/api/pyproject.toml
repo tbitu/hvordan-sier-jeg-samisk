@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hvordan-sier-jeg-samisk-api"
+version = "0.1.0"
+description = "FastAPI control plane for Norwegian to Sami speech pipeline"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.115.0,<1.0.0",
+  "pydantic-settings>=2.7.0,<3.0.0",
+  "python-multipart>=0.0.9,<1.0.0",
+  "uvicorn[standard]>=0.32.0,<1.0.0"
+]
+
+[project.optional-dependencies]
+inference = [
+  "accelerate>=1.1.1,<2.0.0",
+  "imageio-ffmpeg>=0.6.0,<1.0.0",
+  "numpy>=1.26.4,<3.0.0",
+  "safetensors>=0.4.5,<1.0.0",
+  "sentencepiece>=0.2.0,<1.0.0",
+  "tokenizers>=0.20.3,<1.0.0",
+  "transformers>=4.46.3,<5.0.0"
+]
+
+[project.scripts]
+hsjs-smoke-nb-whisper = "app.scripts.smoke_nb_whisper:main"
+hsjs-smoke-tahetorn = "app.scripts.smoke_tahetorn:main"
+hsjs-smoke-tts = "app.scripts.smoke_tts:main"
+hsjs-setup-divvun-tts = "app.scripts.setup_divvun_tts:main"
+
+[tool.setuptools.packages.find]
+include = ["app*"]

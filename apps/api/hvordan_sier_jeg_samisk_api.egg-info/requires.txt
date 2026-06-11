@@ -1,0 +1,12 @@
+fastapi<1.0.0,>=0.115.0
+pydantic-settings<3.0.0,>=2.7.0
+python-multipart<1.0.0,>=0.0.9
+uvicorn[standard]<1.0.0,>=0.32.0
+
+[inference]
+imageio-ffmpeg<1.0.0,>=0.6.0
+numpy<3.0.0,>=1.26.4
+safetensors<1.0.0,>=0.4.5
+sentencepiece<1.0.0,>=0.2.0
+tokenizers<1.0.0,>=0.20.3
+transformers<5.0.0,>=4.46.3

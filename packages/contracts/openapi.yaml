@@ -1,0 +1,522 @@
+openapi: 3.1.0
+info:
+  title: Hvordan sier jeg pa samisk API
+  version: 0.1.0
+servers:
+  - url: http://localhost:8000/api/v1
+paths:
+  /health:
+    get:
+      summary: Health and runtime profiles
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /variants:
+    get:
+      summary: Supported Sami variants
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VariantSummary"
+  /voices:
+    get:
+      summary: Available TTS voices per Sami variant
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TtsVoice"
+  /capabilities:
+    get:
+      summary: Capability matrix per Sami variant
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VariantCapability"
+  /transcribe:
+    post:
+      summary: Transcribe uploaded audio to Norwegian text
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - audio
+              properties:
+                audio:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Transcription created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranscriptionResponse"
+  /translate:
+    post:
+      summary: Translate Norwegian text to the selected Sami variant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TranslationRequest"
+      responses:
+        "200":
+          description: Translation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranslationResponse"
+  /synthesize:
+    post:
+      summary: Synthesize Sami text to audio when a local audio runtime is available
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SynthesisRequest"
+      responses:
+        "200":
+          description: Audio artifact created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SynthesisResponse"
+        "404":
+          description: Unknown variant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Audio runtime unavailable or variant not supported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /pipeline:
+    post:
+      summary: Queue a transcription, translation and speech job
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                target_variant:
+                  $ref: "#/components/schemas/VariantCode"
+                target_voice:
+                  type: string
+                source_text:
+                  type: string
+                include_phonemes:
+                  type: boolean
+                  default: true
+                include_audio:
+                  type: boolean
+                  default: true
+                audio:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Job accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobRecord"
+        "400":
+          description: Invalid request or unsupported audio request for the selected variant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /jobs:
+    get:
+      summary: List queued and completed jobs
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JobRecord"
+  /jobs/{job_id}:
+    get:
+      summary: Read a queued or completed job
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobRecord"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    VariantCode:
+      type: string
+      enum:
+        - sme
+        - smj
+        - sma
+    JobStatus:
+      type: string
+      enum:
+        - queued
+        - running
+        - completed
+        - failed
+    CapabilityLevel:
+      type: string
+      enum:
+        - unavailable
+        - text
+        - phonemes
+        - audio
+    RuntimeProfile:
+      type: object
+      required:
+        - key
+        - architecture
+        - accelerator
+        - container_runtime
+        - priority
+      properties:
+        key:
+          type: string
+        architecture:
+          type: string
+        accelerator:
+          type: string
+        container_runtime:
+          type: string
+        priority:
+          type: integer
+    HealthResponse:
+      type: object
+      required:
+        - name
+        - environment
+        - stub_mode
+        - provider_runtime
+        - tts_runtime
+        - tts_api_configured
+        - tts_api_reachable
+        - tts_command_configured
+        - tts_command_available
+        - tts_variants_ready
+        - tts_variants_local_ready
+        - runtime_components
+        - inference_dependencies_ready
+        - inference_runtime_ready
+        - configured_models
+        - resolved_paths
+        - local_model_cache_present
+        - model_cache_state
+        - runtime_issues
+        - runtime_profiles
+      properties:
+        name:
+          type: string
+        environment:
+          type: string
+        stub_mode:
+          type: boolean
+        provider_runtime:
+          type: string
+        tts_runtime:
+          type: string
+        tts_api_base_url:
+          type: string
+          nullable: true
+        tts_api_configured:
+          type: boolean
+        tts_api_reachable:
+          type: boolean
+        tts_command_configured:
+          type: boolean
+        tts_command_available:
+          type: boolean
+        tts_variants_ready:
+          type: object
+          additionalProperties:
+            type: boolean
+        tts_variants_local_ready:
+          type: object
+          additionalProperties:
+            type: boolean
+        runtime_components:
+          type: object
+          additionalProperties:
+            type: boolean
+        inference_dependencies_ready:
+          type: boolean
+        inference_runtime_ready:
+          type: boolean
+        configured_models:
+          type: object
+          additionalProperties:
+            type: string
+        resolved_paths:
+          type: object
+          additionalProperties:
+            type: string
+        local_model_cache_present:
+          type: boolean
+        model_cache_state:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ModelCacheState"
+        runtime_issues:
+          type: array
+          items:
+            type: string
+        runtime_profiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/RuntimeProfile"
+    ModelCacheState:
+      type: object
+      required:
+        - expected_path
+        - exists
+        - has_snapshots
+        - has_incomplete
+        - looks_usable
+        - summary
+      properties:
+        expected_path:
+          type: string
+        exists:
+          type: boolean
+        has_snapshots:
+          type: boolean
+        has_incomplete:
+          type: boolean
+        looks_usable:
+          type: boolean
+        summary:
+          type: string
+    VariantSummary:
+      type: object
+      required:
+        - code
+        - label
+      properties:
+        code:
+          $ref: "#/components/schemas/VariantCode"
+        label:
+          type: string
+    TtsVoice:
+      type: object
+      required:
+        - variant
+        - variant_label
+        - voice
+        - label
+        - gender
+        - is_default
+      properties:
+        variant:
+          $ref: "#/components/schemas/VariantCode"
+        variant_label:
+          type: string
+        voice:
+          type: string
+        label:
+          type: string
+        gender:
+          type: string
+        is_default:
+          type: boolean
+    VariantCapability:
+      type: object
+      required:
+        - variant
+        - label
+        - capability
+        - notes
+      properties:
+        variant:
+          $ref: "#/components/schemas/VariantCode"
+        label:
+          type: string
+        capability:
+          $ref: "#/components/schemas/CapabilityLevel"
+        notes:
+          type: string
+    PipelineRequest:
+      type: object
+      required:
+        - target_variant
+        - include_phonemes
+        - include_audio
+      properties:
+        target_variant:
+          $ref: "#/components/schemas/VariantCode"
+        target_voice:
+          type: string
+          nullable: true
+        source_text:
+          type: string
+          nullable: true
+        include_phonemes:
+          type: boolean
+        include_audio:
+          type: boolean
+    PipelineStage:
+      type: object
+      required:
+        - name
+        - status
+        - summary
+      properties:
+        name:
+          type: string
+        status:
+          $ref: "#/components/schemas/JobStatus"
+        summary:
+          type: string
+    PipelineResult:
+      type: object
+      required:
+        - audio_requested
+        - audio_available
+        - stages
+      properties:
+        transcript_text:
+          type: string
+          nullable: true
+        translated_text:
+          type: string
+          nullable: true
+        phoneme_text:
+          type: string
+          nullable: true
+        audio_requested:
+          type: boolean
+        audio_available:
+          type: boolean
+        audio_url:
+          type: string
+          nullable: true
+        audio_summary:
+          type: string
+          nullable: true
+        stages:
+          type: array
+          items:
+            $ref: "#/components/schemas/PipelineStage"
+    JobRecord:
+      type: object
+      required:
+        - id
+        - status
+        - request
+      properties:
+        id:
+          type: string
+        status:
+          $ref: "#/components/schemas/JobStatus"
+        request:
+          $ref: "#/components/schemas/PipelineRequest"
+        result:
+          allOf:
+            - $ref: "#/components/schemas/PipelineResult"
+          nullable: true
+        error:
+          type: string
+          nullable: true
+    TranscriptionResponse:
+      type: object
+      required:
+        - transcript_text
+      properties:
+        transcript_text:
+          type: string
+    TranslationRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+        target_variant:
+          $ref: "#/components/schemas/VariantCode"
+    TranslationResponse:
+      type: object
+      required:
+        - translated_text
+      properties:
+        translated_text:
+          type: string
+    SynthesisRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+        target_variant:
+          $ref: "#/components/schemas/VariantCode"
+        target_voice:
+          type: string
+          nullable: true
+    SynthesisResponse:
+      type: object
+      required:
+        - capability
+      properties:
+        audio_url:
+          type: string
+          nullable: true
+        voice:
+          type: string
+          nullable: true
+        capability:
+          $ref: "#/components/schemas/CapabilityLevel"
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
