@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-PAIRFLOW_EXTERNAL_COMMAND="${PAIRFLOW_EXTERNAL_COMMAND:-}"
-PAIRFLOW_WRAPPER_PATH="${PAIRFLOW_WRAPPER_PATH:-}"
-if [ -n "$PAIRFLOW_EXTERNAL_COMMAND" ] && [ -x "$PAIRFLOW_EXTERNAL_COMMAND" ] && [ "$PAIRFLOW_EXTERNAL_COMMAND" != "$PAIRFLOW_WRAPPER_PATH" ] && [ "$PAIRFLOW_EXTERNAL_COMMAND" != "$0" ]; then
-  exec "$PAIRFLOW_EXTERNAL_COMMAND" "$@"
-fi
-printf '%s\n' 'PAIRFLOW_COMMAND_EXTERNAL_UNAVAILABLE: PATH-resolved `pairflow` command is unavailable. Install pairflow globally or run with --pairflow-command-profile self_host in Pairflow self-host worktrees.'
-exit 87
