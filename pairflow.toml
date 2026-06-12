@@ -1,5 +1,10 @@
- [defaults]
+[defaults]
 base_branch = "main"
+
+[validation.commands]
+lint = "npm run lint:web"
+test = "cd apps/api && python -m pytest -v"
+bootstrap = "cd apps/api && pip install -e ."
 
 [defaults.agents]
 implementer = "copilot"
@@ -12,7 +17,5 @@ copilot_provider_base_url = "http://localhost:11434/v1"
 copilot_provider_type = "openai"
 copilot_offline = true
 
-[validation.commands]
-lint = "npm run lint:web"
-test = "cd apps/api && python -m pytest -v"
-bootstrap = "cd apps/api && pip install -e ."
+[plan_watch.runner]
+backend = "copilot"
