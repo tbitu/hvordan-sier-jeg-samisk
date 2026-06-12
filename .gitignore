@@ -15,6 +15,7 @@ dist/
 # Build artifacts
 *.log
 coverage/
+.pairflow/
 
 # Runtime data
 models/
