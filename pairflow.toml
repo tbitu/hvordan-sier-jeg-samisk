@@ -1,11 +1,6 @@
 [defaults]
 base_branch = "main"
 
-[validation.commands]
-lint = "npm run lint:web"
-test = "cd apps/api && . .venv/bin/activate && python -m pytest -v"
-bootstrap = ""
-
 [defaults.agents]
 implementer = "copilot"
 reviewer = "copilot"
