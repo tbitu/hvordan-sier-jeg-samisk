@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "bubble_id": "document_first",
+  "round": 2,
+  "evaluated_at": "2026-06-12T15:17:10.540Z",
+  "gate_decision": "allow",
+  "reason_code": "no_claim_in_docs_only",
+  "review_artifact_type": "document",
+  "verifier_status": "trusted",
+  "claim_classes_detected": "none",
+  "matched_claim_triggers": []
+}

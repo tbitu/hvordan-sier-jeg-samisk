@@ -1,0 +1,58 @@
+id = "document_first"
+bubble_instance_id = "bi_00mqb169xg_5005bddd2166657e664c"
+repo_path = "/home/tarjeib/repo/hvordan-sier-jeg-samisk"
+base_branch = "main"
+bubble_branch = "bubble/document_first"
+work_mode = "worktree"
+quality_mode = "strict"
+review_artifact_type = "document"
+pairflow_command_profile = "external"
+reviewer_context_mode = "fresh"
+watchdog_timeout_minutes = 30
+max_rounds = 8
+severity_gate_round = 4
+commit_requires_approval = true
+accuracy_critical = false
+# attach_launcher unset; attach uses ~/.pairflow/config.toml, then "auto"
+
+[review_policy]
+review_loop_mode = "full"
+reviewer_blocking_min_severity = "P3"
+meta_review_auto_rework_min_severity = "P3"
+
+[agents]
+implementer = "copilot"
+implementer_model = "qwen3.6:35b"
+implementer_copilot_provider_base_url = "http://localhost:11434/v1"
+implementer_copilot_provider_type = "openai"
+implementer_copilot_offline = true
+reviewer = "copilot"
+reviewer_model = "qwen3.6:35b"
+reviewer_copilot_provider_base_url = "http://localhost:11434/v1"
+reviewer_copilot_provider_type = "openai"
+reviewer_copilot_offline = true
+meta_reviewer = "copilot"
+meta_reviewer_model = "qwen3.6:35b"
+meta_reviewer_copilot_provider_base_url = "http://localhost:11434/v1"
+meta_reviewer_copilot_provider_type = "openai"
+meta_reviewer_copilot_offline = true
+
+[role_mcp]
+implementer = "disabled"
+reviewer = "disabled"
+meta_reviewer = "disabled"
+
+[commands]
+test = "pnpm test"
+typecheck = "pnpm typecheck"
+
+[notifications]
+enabled = true
+
+[local_overlay]
+enabled = true
+mode = "symlink"
+entries = [".claude", ".mcp.json", ".env.local", ".env.production"]
+
+[doc_contract_gates]
+round_gate_applies_after = 2

@@ -1,0 +1,133 @@
+# Reviewer Policy Snapshot
+
+## Runtime Review Threshold
+- Current post-gate routing threshold: `review_policy.reviewer_blocking_min_severity=P3`.
+- Current post-gate routing threshold is `review_policy.reviewer_blocking_min_severity=P3` (default baseline). A `P3`-only finding set can still remain reviewer-blocking after `severity_gate_round`; this is a configuration baseline, not a redefinition of `P3` severity.
+- This threshold controls reviewer PASS vs convergence after `severity_gate_round`; it does not redefine the canonical `P0/P1/P2/P3` severity meanings.
+- Document scope qualifier: CLI `--finding` carries severity/title/refs only. For post-gate routing, document-scope `P0/P1` is blocker-grade only with strict qualifiers (`timing=required-now` + `layer=L1`). Without those qualifiers the finding is treated as `P2` for routing-threshold evaluation.
+- Canonical ontology source: `docs/reviewer-severity-ontology.md`.
+
+## Canonical Severity Ontology
+
+# Reviewer Severity Ontology (v1)
+
+**Date:** 2026-02-28  
+**Status:** Canonical policy (active)
+
+## Purpose
+
+This document is the canonical severity policy for reviewer findings.
+
+Goals:
+1. Keep `P0/P1/P2/P3` stable across rounds.
+2. Prevent severity inflation and deflation.
+3. Make reviewer decisions predictable and auditable.
+
+## Scope
+
+This ontology applies to reviewer findings in Pairflow loops.
+It does not replace task acceptance criteria; it complements them.
+
+## Runtime Reminder Block (Build Source)
+
+The block below is the canonical source for runtime reviewer reminder text.
+It is consumed by a build/codegen step and embedded into TypeScript so runtime
+prompts do not depend on reading this markdown file from disk.
+
+<!-- pairflow:runtime-reminder:start -->
+- Blocker severities (`P0/P1`) require concrete evidence (repro, failing check output, or precise code-path proof).
+- Without blocker-grade evidence (`P0/P1`), downgrade to `P2` by default.
+- Post-gate reviewer routing is controlled by `review_policy.reviewer_blocking_min_severity`, not by a fixed `P0/P1` blocker vs `P2/P3` advisory split.
+- Default baseline `review_policy.reviewer_blocking_min_severity=P3` means a `P3`-only post-gate finding set can still remain reviewer-blocking; that is a configuration baseline, not a redefinition of `P3`.
+- In document scope, `P0/P1` is blocker-grade post-gate only with strict qualifiers (`timing=required-now` + `layer=L1`); otherwise it is treated as `P2` for routing-threshold evaluation.
+- Cosmetic/comment-only findings are `P3`.
+- Out-of-scope observations should be notes (`P3`), not mandatory fix findings.
+<!-- pairflow:runtime-reminder:end -->
+
+## Severity Definitions
+
+| Severity | Meaning | Typical examples |
+|---|---|---|
+| `P0` | Critical blocker-level correctness/safety/runtime risk (highest urgency) | confirmed data loss path, critical security exposure, deterministic corruption/destructive behavior |
+| `P1` | Blocker-level correctness/safety/runtime risk | data loss, crash, security issue, race condition, incorrect state transition, deterministic wrong behavior |
+| `P2` | Real functional/quality gap, but not a blocker | missing edge-case handling, meaningful test gap, misleading logic with plausible future defect risk |
+| `P3` | Non-blocking improvement | naming, comments, minor consistency/refactor/documentation cleanup |
+
+## Evidence Requirement by Severity
+
+### `P0` evidence (required)
+At least one of:
+1. Deterministic reproduction steps.
+2. Concrete failing test or failing check output.
+3. Precise code-path proof showing incorrect runtime behavior.
+
+Without blocker-grade evidence (`P0/P1`), downgrade to `P2` by default.
+
+### `P1` evidence (required)
+At least one of:
+1. Deterministic reproduction steps.
+2. Concrete failing test or failing check output.
+3. Precise code-path proof showing incorrect runtime behavior.
+
+Without blocker-grade evidence (`P0/P1`), downgrade to `P2` by default.
+
+### `P2` evidence (required)
+1. Concrete functional or quality risk statement.
+2. Traceable location/path.
+3. Clear expected-vs-actual explanation.
+
+### `P3` evidence (lightweight)
+1. Localized suggestion and rationale.
+
+## Stability Rules (Anti-Drift)
+
+1. Cosmetic/comment-only findings cannot be `P2+`.
+2. Severity cannot escalate across rounds without new evidence.
+3. "Might be risky" claims are not `P0/P1` by default.
+4. Out-of-scope observations default to note-level (`P3`/informational), not mandatory fix findings.
+5. Reviewer should avoid contradictory follow-up direction unless new evidence justifies the change.
+
+## Reviewer Output Contract
+
+Each finding should include:
+1. `severity`
+2. `title`
+3. `why_this_severity` (short)
+4. `evidence` (repro/test/code-path)
+5. `scope_link` (acceptance criterion or explicit risk category)
+
+### Runtime PASS Evidence Binding
+
+Reviewer PASS with any `P0/P1` finding must have evidence bound at finding level:
+1. Preferred CLI form: `--finding "P1:Title|ref1,ref2"` (maps to `finding.refs`).
+2. If a single ref contains a comma, escape it as `\,` inside the `--finding` value.
+3. CLI shorthand is backward-compatible and additive: every parsed `--finding` result gets `timing=later-hardening` and `layer=L1` defaults.
+4. Envelope-level `--ref` values are optional generic artifacts only; they do not satisfy blocker finding evidence binding.
+5. If a `P0/P1` finding has no finding-level refs, PASS is rejected.
+6. Document-scope qualifier: post-gate blocker semantics still require strict finding qualifiers (`timing=required-now` + `layer=L1`). The shorthand defaults above do not strengthen blocker policy, so CLI shorthand `P0/P1` remains advisory for post-gate routing unless explicit blocker qualifiers are present.
+
+## Decision Mapping
+
+1. Round `< severity_gate_round` (default `4`): reviewer canonical pass emit (`pairflow agent emit --kind pass ...`) remains allowed (including non-blocking findings), while canonical convergence emit (`pairflow agent emit --kind convergence ...`) is still allowed when policy preconditions are met.
+2. Round `>= severity_gate_round` with one or more findings that meet `review_policy.reviewer_blocking_min_severity` under scope policy: reviewer should request a fix cycle with canonical pass emit (`pairflow agent emit --kind pass ...`).
+   Default baseline note: `review_policy.reviewer_blocking_min_severity=P3`, so a `P3`-only post-gate finding set can still remain reviewer-blocking because of configuration.
+   If the threshold is tightened to `P2` or `P1`, findings below that threshold become advisory for routing while the severity ontology itself stays unchanged.
+   Document scope blocker-grade `P0/P1` still requires strict qualifiers (`timing=required-now` + `layer=L1`); without those qualifiers the finding is treated as `P2` for routing-threshold evaluation.
+   Operational command form: `pairflow agent emit --kind pass --repo <repo> --bubble-id <id> --handoff-id <handoff-id> --execution-id <execution-id> --summary "..." --finding "<severity>:Title|artifact://ref"` (repeat `--finding` as needed).
+3. Round `>= severity_gate_round` with only findings below the current threshold or clean result: reviewer should use canonical convergence emit (`pairflow agent emit --kind convergence ...`).
+   Operational command forms:
+   - Below-threshold findings: `pairflow agent emit --kind convergence --repo <repo> --bubble-id <id> --handoff-id <handoff-id> --execution-id <execution-id> --summary "..." --finding "<severity>:Title|artifact://ref"`.
+   - Clean (no findings): `pairflow agent emit --kind convergence --repo <repo> --bubble-id <id> --handoff-id <handoff-id> --execution-id <execution-id> --summary "..."` (without `--finding`).
+
+## Command Consistency Guardrails
+
+1. Never make summary-only finding claims without structured `--finding` payload.
+2. Never claim `clean/no findings` while structured findings are present in the same handoff.
+3. Terminology lock: use `--finding`; do not reintroduce `--advisory-finding`.
+
+## Operational Use
+
+This file is intended to be:
+1. Referenced by optimization/tracker docs.
+2. Reflected in reviewer prompt templates and handoff guidance.
+3. Used as review calibration baseline in loop metrics analysis.

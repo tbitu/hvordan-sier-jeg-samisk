@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-06-12T15:04:24.398Z",
+  "task_warnings": [],
+  "config_warnings": [],
+  "review_warnings": [],
+  "finding_evaluations": [
+    {
+      "finding_key": "r1:f1",
+      "priority": "P3",
+      "effective_priority": "P3",
+      "timing": "later-hardening",
+      "effective_timing": "later-hardening",
+      "layer": "L1"
+    }
+  ],
+  "round_gate_state": {
+    "applies": false,
+    "violated": false,
+    "round": 1
+  },
+  "spec_lock_state": {
+    "state": "IMPLEMENTABLE",
+    "open_blocker_count": 0,
+    "open_required_now_count": 0
+  }
+}
