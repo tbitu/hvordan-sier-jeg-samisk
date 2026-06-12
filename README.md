@@ -110,7 +110,23 @@ Health-endepunktet rapporterer na om TTS-API-et er naabart og hvilke varianter s
 
 Frontend henter og viser alle publiserte stemmer per variant fra `/api/v1/voices` og sender valgt stemme videre i pipeline-kallet.
 
-### Lokal TTS med Divvun speech
+### Nedlasting av lokale Divvun stemmefiler (valgfritt)
+
+Hvis du ikke vil bruke offentlig Divvun TTS-API og heller vil kjøre TTS lokalt, må du skaffe lokale `.pte`-stemmefiler manuelt:
+
+1. Last ned stemmepakker fra [Borealium](https://borealium.eu/) eller Divvun Manager.
+2. Pakk ut `voice.pte` og `vocoder.pte` for ønskede varianter (`sme`, `smj`, `sma`).
+3. Bruk prosjektets hjelper for å oppdage filene og skrive `.env`:
+
+   ```bash
+   cd apps/api
+   . .venv/bin/activate
+   python -m app.scripts.setup_divvun_tts --variant sme --search-root ~/Downloads --write-env .env
+   ```
+
+4. Set `HSJS_TTS_RUNTIME=divvun-command` i `.env` og peik `HSJS_TTS_COMMAND` til ein ferdig bygd `divvun-speech-rs`-synthesize-runner.
+
+**Merk:** `divvun-speech-rs` har ingen publiserte GitHub Releases for synthesize-binaren, og Linux-bygg krev Rust, CMake og `EXECUTORCH_SYSROOT`. Borealium er foreløpig den tryggeste distribusjonskanalen for `.pte`-stemmefiler. `sma`-audio er ikkje verifisert som fullt fungerande med lokale filer i denne koden.
 
 GiellaLT/Divvun har en lokal TTS-stakk for blant annet `sme` og `smj`, og prosjektet kan nå kalle den via ekstern kommando dersom du har bygd eller pakket en lokal `divvun-speech-rs`-runner selv.
 
@@ -322,4 +338,8 @@ ROCm-inference-containeren i [infra/containers/inference.rocm.Dockerfile](infra/
 
 ## Videre arbeid
 
-Neste steg er å koble fonemstegene til en verifisert lokal fonemiserer og eventuelt verifisere full audio-støtte for `sma` dersom lokale stemmemodeller blir tilgjengelige.
+Noe arbeid att:
+
+1. Finn ut korleis vi skal distribuera lokale Divvun-stemmefiler (`voice.pte`/`vocoder.pte`) i staden for offentleg API. Mest sannsynleg via Borealium eller Divvun-manager.
+2. Koble fonemstega til ein verifisert lokal fonemiserer.
+3. Verifiser full audio-støtte for `sma` dersom lokale stemmemodellar blir tilgjengelege.
