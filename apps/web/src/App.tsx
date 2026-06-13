@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLiveMic } from "./features/live-mic/useLiveMic";
 import type { VariantCode, VariantCapability, TtsVoice, HealthResponse, JobRecord } from "./types";
 import {
@@ -36,6 +36,11 @@ export default function App() {
   const [audioPreview, setAudioPreview] = useState<string | null>(null);
   const [isRefreshingRuntime, setIsRefreshingRuntime] = useState(false);
 
+  // AbortController for runtime data fetches - prevents stale data overwrites
+  const runtimeAbortRef = useRef<AbortController | null>(null);
+  // AbortController for active job polling - allows cancellation on new submit/unmount
+  const pollAbortRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
     const variantVoices = resolveVoices(voices, variant);
     if (variantVoices.length === 0) {
@@ -66,13 +71,20 @@ export default function App() {
   }, [audioBlob]);
 
   async function loadRuntimeData() {
+    // Cancel any in-flight runtime fetch
+    runtimeAbortRef.current?.abort();
+    const controller = new AbortController();
+    runtimeAbortRef.current = controller;
+
     setIsRefreshingRuntime(true);
     try {
       const [capabilityResult, healthResult, voiceResult] = await Promise.allSettled([
-        fetchCapabilities(),
-        fetchHealth(),
-        fetchVoices(),
+        fetchCapabilities(controller.signal),
+        fetchHealth(controller.signal),
+        fetchVoices(controller.signal),
       ]);
+
+      if (controller.signal.aborted) return;
 
       if (capabilityResult.status === "fulfilled") {
         setCapabilities(capabilityResult.value);
@@ -100,25 +112,20 @@ export default function App() {
       } else {
         setVoiceError(voiceResult.reason instanceof Error ? voiceResult.reason.message : "Kunne ikke hente stemmer");
       }
-    } catch {
-      setCapabilityError("Kunne ikke hente capability-matrise");
-      setHealthError("Kunne ikke hente runtime-status");
-      setVoiceError("Kunne ikke hente stemmer");
     } finally {
       setIsRefreshingRuntime(false);
     }
   }
 
   useEffect(() => {
-    let isMounted = true;
+    const controller = new AbortController();
     void loadRuntimeData().catch(() => {
-      if (!isMounted) {
-        return;
-      }
+      // Silently ignore - errors or abortions are handled inside loadRuntimeData
     });
     return () => {
-      isMounted = false;
+      controller.abort();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const selectedCapability = resolveCapability(capabilities, variant);
@@ -168,9 +175,18 @@ export default function App() {
       }
       const queuedJob = (await createResponse.json()) as JobRecord;
       setJob(queuedJob);
-      const resolvedJob = await pollJob(queuedJob.id, setJob);
+
+      // Cancel any in-flight poll before starting a new one
+      pollAbortRef.current?.abort();
+      const pollController = new AbortController();
+      pollAbortRef.current = pollController;
+      const resolvedJob = await pollJob(queuedJob.id, setJob, pollController.signal);
       setJob(resolvedJob);
     } catch (caughtError) {
+      if (caughtError instanceof Error && caughtError.message === "Avbrutt") {
+        // Poll was cancelled by a new submit or unmount - silently ignore
+        return;
+      }
       setApiError(caughtError instanceof Error ? caughtError.message : "Ukjent API-feil");
     } finally {
       setIsSubmitting(false);

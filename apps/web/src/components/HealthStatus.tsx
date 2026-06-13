@@ -18,7 +18,7 @@ export function HealthStatus({
   selectedVoice,
   healthError,
 }: HealthStatusProps) {
-  const preferredRuntime = health?.runtime_profiles[0] ?? null;
+  const preferredRuntime = health?.runtime_profiles?.[0] ?? null;
   const missingRuntimeComponents = listMissingRuntimeComponents(health);
 
   return (
@@ -52,7 +52,7 @@ export function HealthStatus({
           {missingRuntimeComponents.length > 0 ? (
             <p className="hint">Mangler akkurat na: {missingRuntimeComponents.join(", ")}</p>
           ) : null}
-          {health?.runtime_issues.length ? <p className="hint">Kjente avvik: {health.runtime_issues.join(" | ")}</p> : null}
+          {health?.runtime_issues?.length ? <p className="hint">Kjente avvik: {health.runtime_issues.join(" | ")}</p> : null}
         </article>
         <article>
           <h3>Valgt variant</h3>

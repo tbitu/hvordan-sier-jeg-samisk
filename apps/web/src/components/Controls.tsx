@@ -1,4 +1,4 @@
-import type { VariantCode, VariantCapability, TtsVoice, HealthResponse } from "../types";
+import type { VariantCode, VariantCapability, TtsVoice, HealthResponse, JobRecord } from "../types";
 import { describeAudioMode, getLatestStage } from "../utils";
 
 type ControlsProps = {
@@ -26,7 +26,7 @@ type ControlsProps = {
   apiError: string | null;
   audioPreview: string | null;
   audioBlob: Blob | null;
-  job: any;
+  job: JobRecord | null;
 };
 
 export function Controls({

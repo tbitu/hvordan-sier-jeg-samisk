@@ -1,14 +1,19 @@
-import type { HealthResponse, PipelineStage, VariantCapability } from "./types";
+import type { HealthResponse, JobRecord, TtsVoice, PipelineStage, VariantCapability } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
-export async function pollJob(jobId: string, onUpdate: (job: any) => void): Promise<any> {
+export async function pollJob(
+  jobId: string,
+  onUpdate: (job: JobRecord) => void,
+  signal?: AbortSignal,
+): Promise<JobRecord> {
   for (let attempt = 0; attempt < 300; attempt += 1) {
-    const response = await fetch(`${API_BASE}/jobs/${jobId}`);
+    if (signal?.aborted) throw new Error("Avbrutt");
+    const response = await fetch(`${API_BASE}/jobs/${jobId}`, { signal });
     if (!response.ok) {
       throw new Error("Kunne ikke hente jobbstatus fra API-et");
     }
-    const payload = (await response.json()) as any;
+    const payload = (await response.json()) as JobRecord;
     onUpdate(payload);
     if (payload.status === "completed" || payload.status === "failed") {
       return payload;
@@ -18,28 +23,28 @@ export async function pollJob(jobId: string, onUpdate: (job: any) => void): Prom
   throw new Error("Jobben brukte for lang tid. Sjekk API-loggene og prov igjen.");
 }
 
-export async function fetchCapabilities(): Promise<VariantCapability[]> {
-  const response = await fetch(`${API_BASE}/capabilities`);
+export async function fetchCapabilities(signal?: AbortSignal): Promise<VariantCapability[]> {
+  const response = await fetch(`${API_BASE}/capabilities`, { signal });
   if (!response.ok) {
     throw new Error("Kunne ikke hente capability-matrise fra API-et");
   }
   return (await response.json()) as VariantCapability[];
 }
 
-export async function fetchHealth(): Promise<HealthResponse> {
-  const response = await fetch(`${API_BASE}/health`);
+export async function fetchHealth(signal?: AbortSignal): Promise<HealthResponse> {
+  const response = await fetch(`${API_BASE}/health`, { signal });
   if (!response.ok) {
     throw new Error("Kunne ikke hente runtime-status fra API-et");
   }
   return (await response.json()) as HealthResponse;
 }
 
-export async function fetchVoices(): Promise<any[]> {
-  const response = await fetch(`${API_BASE}/voices`);
+export async function fetchVoices(signal?: AbortSignal): Promise<TtsVoice[]> {
+  const response = await fetch(`${API_BASE}/voices`, { signal });
   if (!response.ok) {
     throw new Error("Kunne ikke hente stemmer fra API-et");
   }
-  return (await response.json()) as any[];
+  return (await response.json()) as TtsVoice[];
 }
 
 export function resolveArtifactUrl(audioUrl: string): string {
@@ -50,15 +55,16 @@ export function resolveArtifactUrl(audioUrl: string): string {
   }
 }
 
-export function getLatestStage(job: any): PipelineStage | null {
-  if (!job?.result?.stages.length) {
+export function getLatestStage(job: JobRecord | null): PipelineStage | null {
+  const stages = job?.result?.stages;
+  if (!stages || stages.length === 0) {
     return null;
   }
-  return job.result.stages[job.result.stages.length - 1] ?? null;
+  return stages[stages.length - 1] ?? null;
 }
 
-export function countCompletedStages(job: any): number {
-  return job?.result?.stages.filter((stage: PipelineStage) => stage.status === "completed").length ?? 0;
+export function countCompletedStages(job: JobRecord | null): number {
+  return job?.result?.stages?.filter((stage: PipelineStage) => stage.status === "completed").length ?? 0;
 }
 
 export function listMissingRuntimeComponents(health: HealthResponse | null): string[] {
@@ -126,7 +132,7 @@ export const FALLBACK_CAPABILITIES: VariantCapability[] = [
   },
 ];
 
-export const FALLBACK_VOICES: any[] = [
+export const FALLBACK_VOICES: TtsVoice[] = [
   { variant: "sme", variant_label: "Nordsamisk", voice: "biret", label: "Biret", gender: "female", is_default: true },
   { variant: "sme", variant_label: "Nordsamisk", voice: "mahtte", label: "Mahtte", gender: "male", is_default: false },
   { variant: "sme", variant_label: "Nordsamisk", voice: "sunna", label: "Sunna", gender: "female", is_default: false },
@@ -136,7 +142,7 @@ export const FALLBACK_VOICES: any[] = [
   { variant: "sma", variant_label: "Sorsamisk", voice: "aanna", label: "Aanna", gender: "female", is_default: true },
 ];
 
-export function resolveVoices(voices: any[], variant: string): any[] {
+export function resolveVoices(voices: TtsVoice[], variant: string): TtsVoice[] {
   const variantVoices = voices.filter((item) => item.variant === variant);
   if (variantVoices.length > 0) {
     return variantVoices;
@@ -144,7 +150,7 @@ export function resolveVoices(voices: any[], variant: string): any[] {
   return FALLBACK_VOICES.filter((item) => item.variant === variant);
 }
 
-export function resolveDefaultVoice(voices: any[], variant: string): any | null {
+export function resolveDefaultVoice(voices: TtsVoice[], variant: string): TtsVoice | null {
   const variantVoices = resolveVoices(voices, variant);
   return variantVoices.find((item) => item.is_default) ?? variantVoices[0] ?? null;
 }
