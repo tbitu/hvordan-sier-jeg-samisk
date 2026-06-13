@@ -8,6 +8,7 @@ Requires-Dist: pydantic-settings<3.0.0,>=2.7.0
 Requires-Dist: python-multipart<1.0.0,>=0.0.9
 Requires-Dist: uvicorn[standard]<1.0.0,>=0.32.0
 Provides-Extra: inference
+Requires-Dist: accelerate<2.0.0,>=1.1.1; extra == "inference"
 Requires-Dist: imageio-ffmpeg<1.0.0,>=0.6.0; extra == "inference"
 Requires-Dist: numpy<3.0.0,>=1.26.4; extra == "inference"
 Requires-Dist: safetensors<1.0.0,>=0.4.5; extra == "inference"

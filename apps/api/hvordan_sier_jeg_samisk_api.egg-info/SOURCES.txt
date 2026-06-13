@@ -16,7 +16,9 @@ app/api/v1/routes/synthesize.py
 app/api/v1/routes/transcribe.py
 app/api/v1/routes/translate.py
 app/api/v1/routes/variants.py
+app/api/v1/routes/voices.py
 app/core/__init__.py
+app/core/runtime_readiness.py
 app/core/settings.py
 app/pipeline/__init__.py
 app/pipeline/service.py
@@ -31,6 +33,7 @@ app/providers/speech/sme.py
 app/providers/speech/smj.py
 app/providers/translation/__init__.py
 app/providers/translation/tahetorn.py
+app/scripts/setup_divvun_tts.py
 app/scripts/smoke_nb_whisper.py
 app/scripts/smoke_tahetorn.py
 app/scripts/smoke_tts.py
@@ -40,3 +43,5 @@ hvordan_sier_jeg_samisk_api.egg-info/dependency_links.txt
 hvordan_sier_jeg_samisk_api.egg-info/entry_points.txt
 hvordan_sier_jeg_samisk_api.egg-info/requires.txt
 hvordan_sier_jeg_samisk_api.egg-info/top_level.txt
+tests/test_domain_models.py
+tests/test_routes_smoke.py

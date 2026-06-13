@@ -1,4 +1,5 @@
 [console_scripts]
+hsjs-setup-divvun-tts = app.scripts.setup_divvun_tts:main
 hsjs-smoke-nb-whisper = app.scripts.smoke_nb_whisper:main
 hsjs-smoke-tahetorn = app.scripts.smoke_tahetorn:main
 hsjs-smoke-tts = app.scripts.smoke_tts:main
