@@ -18,7 +18,9 @@ class LuleSamiSpeechProvider:
         self.synth_config = synth_config or SpeechSynthesisConfig()
 
     def phonemize(self, text: str) -> str:
-        return f"/smj/ {text}"
+        from app.providers.phonemization import phonemize as _phonemize
+
+        return _phonemize(text, variant="smj")
 
     def synthesize(self, text: str, voice: str | None = None) -> str:
         return synthesize_with_config(

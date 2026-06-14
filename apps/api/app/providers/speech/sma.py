@@ -17,7 +17,9 @@ class SouthSamiSpeechProvider:
         self.synth_config = synth_config or SpeechSynthesisConfig()
 
     def phonemize(self, text: str) -> str:
-        return f"/sma/ {text}"
+        from app.providers.phonemization import phonemize as _phonemize
+
+        return _phonemize(text, variant="sma")
 
     def synthesize(self, text: str, voice: str | None = None) -> str | None:
         return synthesize_with_config(
