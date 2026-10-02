@@ -11,7 +11,6 @@ NORTH_SAMI_EXTRA_CHARS = {
     "â": f"{PHONEME_PREFIX}ô",  # back rounded mid vowel [ɔ] — sme only
     "ä": f"{PHONEME_PREFIX}æ",  # front open-mid [æ ~ ɛ] — sme only
     "á": f"{PHONEME_PREFIX}aː",  # long/a-toned a
-    "â": f"{PHONEME_PREFIX}ô",   # back rounded mid vowel
 
     # Vowel length markers: geminated following consonant in orthography
     # These are handled by context; we don't need explicit rules for them

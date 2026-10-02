@@ -2,15 +2,13 @@
 base_branch = "main"
 
 [defaults.agents]
-implementer = "copilot"
-reviewer = "copilot"
-meta_reviewer = "copilot"
-implementer_model = "unsloth-qwen36q8"
-reviewer_model = "unsloth-qwen36q8"
-meta_reviewer_model = "unsloth-qwen36q8"
-copilot_provider_base_url = "http://localhost:11434/v1"
-copilot_provider_type = "openai"
-copilot_offline = true
+implementer = "opencode"
+implementer_model = "lmstudio/pairflow-implementer"
+reviewer = "opencode"
+reviewer_model = "lmstudio/pairflow-reviewer"
+meta_reviewer = "opencode"
+meta_reviewer_model = "lmstudio/pairflow-meta-reviewer"
 
 [plan_watch.runner]
-backend = "copilot"
+backend = "opencode"
+idle_timeout_seconds = 1800
