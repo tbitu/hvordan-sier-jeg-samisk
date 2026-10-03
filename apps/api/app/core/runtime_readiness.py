@@ -5,6 +5,7 @@ from importlib.util import find_spec
 from pathlib import Path
 from shutil import which
 import shlex
+import threading
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
@@ -185,6 +186,13 @@ def _tts_variant_ready(
     return False
 
 
+# Whole-probe budget (DNS + connect + read) and the socket-operation budget
+# inside the probe thread. urlopen's timeout does not bound name resolution,
+# so the thread join provides the hard cap on the whole attempt.
+_TTS_PROBE_TIMEOUT_S = 3.0
+_TTS_PROBE_SOCKET_TIMEOUT_S = 2.0
+
+
 def _check_tts_api(api_base_url: str) -> bool:
     if not api_base_url.strip():
         return False
@@ -192,12 +200,23 @@ def _check_tts_api(api_base_url: str) -> bool:
     if not parsed.scheme or not parsed.netloc:
         return False
     probe_url = f"{parsed.scheme}://{parsed.netloc}/"
-    request = Request(probe_url, headers={"Accept": "text/html,application/json"}, method="GET")
-    try:
-        with urlopen(request, timeout=3) as response:
-            return 200 <= response.status < 300
-    except (HTTPError, URLError):
-        return False
+    result: dict[str, bool] = {}
+
+    def _probe() -> None:
+        request = Request(probe_url, headers={"Accept": "text/html,application/json"}, method="GET")
+        try:
+            with urlopen(request, timeout=_TTS_PROBE_SOCKET_TIMEOUT_S) as response:
+                result["ok"] = 200 <= response.status < 300
+        except (HTTPError, URLError, OSError):
+            result["ok"] = False
+
+    # A slow or black-holing resolver could otherwise hang startup (and every
+    # /health call) far past the probe budget, so the probe runs in a daemon
+    # thread and the whole attempt is bounded by the join.
+    probe = threading.Thread(target=_probe, daemon=True)
+    probe.start()
+    probe.join(_TTS_PROBE_TIMEOUT_S)
+    return bool(result.get("ok", False))
 
 
 def _path_exists(path: Path | None) -> bool:

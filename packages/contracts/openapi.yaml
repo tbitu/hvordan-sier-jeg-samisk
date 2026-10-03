@@ -1,522 +1,754 @@
 openapi: 3.1.0
 info:
-  title: Hvordan sier jeg pa samisk API
+  title: Hvordan sier jeg pa samisk
   version: 0.1.0
-servers:
-  - url: http://localhost:8000/api/v1
 paths:
-  /health:
+  /api/v1/health:
     get:
-      summary: Health and runtime profiles
+      tags:
+      - health
+      summary: Get Health
+      operationId: get_health_api_v1_health_get
       responses:
-        "200":
-          description: OK
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HealthResponse"
-  /variants:
+                $ref: '#/components/schemas/HealthResponse'
+  /api/v1/variants:
     get:
-      summary: Supported Sami variants
+      tags:
+      - variants
+      summary: List Variants
+      operationId: list_variants_api_v1_variants_get
       responses:
-        "200":
-          description: OK
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
-                type: array
                 items:
-                  $ref: "#/components/schemas/VariantSummary"
-  /voices:
+                  $ref: '#/components/schemas/VariantSummary'
+                type: array
+                title: Response List Variants Api V1 Variants Get
+  /api/v1/voices:
     get:
-      summary: Available TTS voices per Sami variant
+      tags:
+      - voices
+      summary: List Voices
+      operationId: list_voices_api_v1_voices_get
       responses:
-        "200":
-          description: OK
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
-                type: array
                 items:
-                  $ref: "#/components/schemas/TtsVoice"
-  /capabilities:
+                  $ref: '#/components/schemas/TtsVoice'
+                type: array
+                title: Response List Voices Api V1 Voices Get
+  /api/v1/capabilities:
     get:
-      summary: Capability matrix per Sami variant
+      tags:
+      - capabilities
+      summary: Get Capabilities
+      operationId: get_capabilities_api_v1_capabilities_get
       responses:
-        "200":
-          description: OK
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
-                type: array
                 items:
-                  $ref: "#/components/schemas/VariantCapability"
-  /transcribe:
+                  $ref: '#/components/schemas/VariantCapability'
+                type: array
+                title: Response Get Capabilities Api V1 Capabilities Get
+  /api/v1/transcribe:
     post:
-      summary: Transcribe uploaded audio to Norwegian text
+      tags:
+      - transcribe
+      summary: Transcribe Audio
+      operationId: transcribe_audio_api_v1_transcribe_post
       requestBody:
-        required: true
         content:
           multipart/form-data:
             schema:
-              type: object
-              required:
-                - audio
-              properties:
-                audio:
-                  type: string
-                  format: binary
+              $ref: '#/components/schemas/Body_transcribe_audio_api_v1_transcribe_post'
+        required: true
       responses:
-        "200":
-          description: Transcription created
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TranscriptionResponse"
-  /translate:
+                $ref: '#/components/schemas/TranscriptionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/translate:
     post:
-      summary: Translate Norwegian text to the selected Sami variant
+      tags:
+      - translate
+      summary: Translate Text
+      operationId: translate_text_api_v1_translate_post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TranslationRequest"
+              $ref: '#/components/schemas/TranslationRequest'
+        required: true
       responses:
-        "200":
-          description: Translation created
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TranslationResponse"
-  /synthesize:
+                $ref: '#/components/schemas/TranslationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/synthesize:
     post:
-      summary: Synthesize Sami text to audio when a local audio runtime is available
+      tags:
+      - synthesize
+      summary: Synthesize Text
+      operationId: synthesize_text_api_v1_synthesize_post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SynthesisRequest"
-      responses:
-        "200":
-          description: Audio artifact created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SynthesisResponse"
-        "404":
-          description: Unknown variant
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: Audio runtime unavailable or variant not supported
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-  /pipeline:
-    post:
-      summary: Queue a transcription, translation and speech job
-      requestBody:
+              $ref: '#/components/schemas/SynthesisRequest'
         required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SynthesisResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/pipeline:
+    post:
+      tags:
+      - pipeline
+      summary: Create Pipeline Job
+      operationId: create_pipeline_job_api_v1_pipeline_post
+      requestBody:
         content:
           multipart/form-data:
             schema:
-              type: object
-              properties:
-                target_variant:
-                  $ref: "#/components/schemas/VariantCode"
-                target_voice:
-                  type: string
-                source_text:
-                  type: string
-                include_phonemes:
-                  type: boolean
-                  default: true
-                include_audio:
-                  type: boolean
-                  default: true
-                audio:
-                  type: string
-                  format: binary
+              $ref: '#/components/schemas/Body_create_pipeline_job_api_v1_pipeline_post'
       responses:
-        "200":
-          description: Job accepted
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/JobRecord"
-        "400":
-          description: Invalid request or unsupported audio request for the selected variant
+                $ref: '#/components/schemas/JobRecord'
+        '400':
+          description: Bad Request
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-  /jobs:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/jobs:
     get:
-      summary: List queued and completed jobs
+      tags:
+      - jobs
+      summary: List Jobs
+      operationId: list_jobs_api_v1_jobs_get
       responses:
-        "200":
-          description: OK
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
-                type: array
                 items:
-                  $ref: "#/components/schemas/JobRecord"
-  /jobs/{job_id}:
+                  $ref: '#/components/schemas/JobRecord'
+                type: array
+                title: Response List Jobs Api V1 Jobs Get
+  /api/v1/jobs/{job_id}:
     get:
-      summary: Read a queued or completed job
+      tags:
+      - jobs
+      summary: Get Job
+      operationId: get_job_api_v1_jobs__job_id__get
       parameters:
-        - in: path
-          name: job_id
-          required: true
-          schema:
-            type: string
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Job Id
       responses:
-        "200":
-          description: OK
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/JobRecord"
-        "404":
-          description: Not found
+                $ref: '#/components/schemas/JobRecord'
+        '404':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /:
+    get:
+      summary: Root
+      operationId: root__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Root  Get
 components:
   schemas:
-    VariantCode:
-      type: string
-      enum:
-        - sme
-        - smj
-        - sma
-    JobStatus:
-      type: string
-      enum:
-        - queued
-        - running
-        - completed
-        - failed
+    Body_create_pipeline_job_api_v1_pipeline_post:
+      properties:
+        target_variant:
+          $ref: '#/components/schemas/VariantCode'
+          default: sme
+        target_voice:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Voice
+        source_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Text
+        include_phonemes:
+          type: boolean
+          title: Include Phonemes
+          default: true
+        include_audio:
+          type: boolean
+          title: Include Audio
+          default: true
+        audio:
+          anyOf:
+          - type: string
+            contentMediaType: application/octet-stream
+          - type: 'null'
+          title: Audio
+      type: object
+      title: Body_create_pipeline_job_api_v1_pipeline_post
+    Body_transcribe_audio_api_v1_transcribe_post:
+      properties:
+        audio:
+          type: string
+          contentMediaType: application/octet-stream
+          title: Audio
+      type: object
+      required:
+      - audio
+      title: Body_transcribe_audio_api_v1_transcribe_post
     CapabilityLevel:
       type: string
       enum:
-        - unavailable
-        - text
-        - phonemes
-        - audio
-    RuntimeProfile:
-      type: object
-      required:
-        - key
-        - architecture
-        - accelerator
-        - container_runtime
-        - priority
-      properties:
-        key:
-          type: string
-        architecture:
-          type: string
-        accelerator:
-          type: string
-        container_runtime:
-          type: string
-        priority:
-          type: integer
-    HealthResponse:
-      type: object
-      required:
-        - name
-        - environment
-        - stub_mode
-        - provider_runtime
-        - tts_runtime
-        - tts_api_configured
-        - tts_api_reachable
-        - tts_command_configured
-        - tts_command_available
-        - tts_variants_ready
-        - tts_variants_local_ready
-        - runtime_components
-        - inference_dependencies_ready
-        - inference_runtime_ready
-        - configured_models
-        - resolved_paths
-        - local_model_cache_present
-        - model_cache_state
-        - runtime_issues
-        - runtime_profiles
-      properties:
-        name:
-          type: string
-        environment:
-          type: string
-        stub_mode:
-          type: boolean
-        provider_runtime:
-          type: string
-        tts_runtime:
-          type: string
-        tts_api_base_url:
-          type: string
-          nullable: true
-        tts_api_configured:
-          type: boolean
-        tts_api_reachable:
-          type: boolean
-        tts_command_configured:
-          type: boolean
-        tts_command_available:
-          type: boolean
-        tts_variants_ready:
-          type: object
-          additionalProperties:
-            type: boolean
-        tts_variants_local_ready:
-          type: object
-          additionalProperties:
-            type: boolean
-        runtime_components:
-          type: object
-          additionalProperties:
-            type: boolean
-        inference_dependencies_ready:
-          type: boolean
-        inference_runtime_ready:
-          type: boolean
-        configured_models:
-          type: object
-          additionalProperties:
-            type: string
-        resolved_paths:
-          type: object
-          additionalProperties:
-            type: string
-        local_model_cache_present:
-          type: boolean
-        model_cache_state:
-          type: object
-          additionalProperties:
-            $ref: "#/components/schemas/ModelCacheState"
-        runtime_issues:
-          type: array
-          items:
-            type: string
-        runtime_profiles:
-          type: array
-          items:
-            $ref: "#/components/schemas/RuntimeProfile"
-    ModelCacheState:
-      type: object
-      required:
-        - expected_path
-        - exists
-        - has_snapshots
-        - has_incomplete
-        - looks_usable
-        - summary
-      properties:
-        expected_path:
-          type: string
-        exists:
-          type: boolean
-        has_snapshots:
-          type: boolean
-        has_incomplete:
-          type: boolean
-        looks_usable:
-          type: boolean
-        summary:
-          type: string
-    VariantSummary:
-      type: object
-      required:
-        - code
-        - label
-      properties:
-        code:
-          $ref: "#/components/schemas/VariantCode"
-        label:
-          type: string
-    TtsVoice:
-      type: object
-      required:
-        - variant
-        - variant_label
-        - voice
-        - label
-        - gender
-        - is_default
-      properties:
-        variant:
-          $ref: "#/components/schemas/VariantCode"
-        variant_label:
-          type: string
-        voice:
-          type: string
-        label:
-          type: string
-        gender:
-          type: string
-        is_default:
-          type: boolean
-    VariantCapability:
-      type: object
-      required:
-        - variant
-        - label
-        - capability
-        - notes
-      properties:
-        variant:
-          $ref: "#/components/schemas/VariantCode"
-        label:
-          type: string
-        capability:
-          $ref: "#/components/schemas/CapabilityLevel"
-        notes:
-          type: string
-    PipelineRequest:
-      type: object
-      required:
-        - target_variant
-        - include_phonemes
-        - include_audio
-      properties:
-        target_variant:
-          $ref: "#/components/schemas/VariantCode"
-        target_voice:
-          type: string
-          nullable: true
-        source_text:
-          type: string
-          nullable: true
-        include_phonemes:
-          type: boolean
-        include_audio:
-          type: boolean
-    PipelineStage:
-      type: object
-      required:
-        - name
-        - status
-        - summary
-      properties:
-        name:
-          type: string
-        status:
-          $ref: "#/components/schemas/JobStatus"
-        summary:
-          type: string
-    PipelineResult:
-      type: object
-      required:
-        - audio_requested
-        - audio_available
-        - stages
-      properties:
-        transcript_text:
-          type: string
-          nullable: true
-        translated_text:
-          type: string
-          nullable: true
-        phoneme_text:
-          type: string
-          nullable: true
-        audio_requested:
-          type: boolean
-        audio_available:
-          type: boolean
-        audio_url:
-          type: string
-          nullable: true
-        audio_summary:
-          type: string
-          nullable: true
-        stages:
-          type: array
-          items:
-            $ref: "#/components/schemas/PipelineStage"
-    JobRecord:
-      type: object
-      required:
-        - id
-        - status
-        - request
-      properties:
-        id:
-          type: string
-        status:
-          $ref: "#/components/schemas/JobStatus"
-        request:
-          $ref: "#/components/schemas/PipelineRequest"
-        result:
-          allOf:
-            - $ref: "#/components/schemas/PipelineResult"
-          nullable: true
-        error:
-          type: string
-          nullable: true
-    TranscriptionResponse:
-      type: object
-      required:
-        - transcript_text
-      properties:
-        transcript_text:
-          type: string
-    TranslationRequest:
-      type: object
-      required:
-        - text
-      properties:
-        text:
-          type: string
-        target_variant:
-          $ref: "#/components/schemas/VariantCode"
-    TranslationResponse:
-      type: object
-      required:
-        - translated_text
-      properties:
-        translated_text:
-          type: string
-    SynthesisRequest:
-      type: object
-      required:
-        - text
-      properties:
-        text:
-          type: string
-        target_variant:
-          $ref: "#/components/schemas/VariantCode"
-        target_voice:
-          type: string
-          nullable: true
-    SynthesisResponse:
-      type: object
-      required:
-        - capability
-      properties:
-        audio_url:
-          type: string
-          nullable: true
-        voice:
-          type: string
-          nullable: true
-        capability:
-          $ref: "#/components/schemas/CapabilityLevel"
+      - unavailable
+      - text
+      - phonemes
+      - audio
+      title: CapabilityLevel
     ErrorResponse:
-      type: object
-      required:
-        - detail
       properties:
         detail:
           type: string
+          title: Detail
+      type: object
+      required:
+      - detail
+      title: ErrorResponse
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HealthResponse:
+      properties:
+        name:
+          type: string
+          title: Name
+        environment:
+          type: string
+          title: Environment
+        stub_mode:
+          type: boolean
+          title: Stub Mode
+        provider_runtime:
+          type: string
+          title: Provider Runtime
+        tts_runtime:
+          type: string
+          title: Tts Runtime
+        tts_api_base_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tts Api Base Url
+        tts_api_configured:
+          type: boolean
+          title: Tts Api Configured
+        tts_api_reachable:
+          type: boolean
+          title: Tts Api Reachable
+        tts_command_configured:
+          type: boolean
+          title: Tts Command Configured
+        tts_command_available:
+          type: boolean
+          title: Tts Command Available
+        tts_variants_ready:
+          additionalProperties:
+            type: boolean
+          type: object
+          title: Tts Variants Ready
+        tts_variants_local_ready:
+          additionalProperties:
+            type: boolean
+          type: object
+          title: Tts Variants Local Ready
+        runtime_components:
+          additionalProperties:
+            type: boolean
+          type: object
+          title: Runtime Components
+        inference_dependencies_ready:
+          type: boolean
+          title: Inference Dependencies Ready
+        inference_runtime_ready:
+          type: boolean
+          title: Inference Runtime Ready
+        configured_models:
+          additionalProperties:
+            type: string
+          type: object
+          title: Configured Models
+        resolved_paths:
+          additionalProperties:
+            type: string
+          type: object
+          title: Resolved Paths
+        local_model_cache_present:
+          type: boolean
+          title: Local Model Cache Present
+        model_cache_state:
+          additionalProperties:
+            $ref: '#/components/schemas/ModelCacheState'
+          type: object
+          title: Model Cache State
+        runtime_issues:
+          items:
+            type: string
+          type: array
+          title: Runtime Issues
+        runtime_profiles:
+          items:
+            $ref: '#/components/schemas/RuntimeProfile'
+          type: array
+          title: Runtime Profiles
+      type: object
+      required:
+      - name
+      - environment
+      - stub_mode
+      - provider_runtime
+      - tts_runtime
+      - tts_api_configured
+      - tts_api_reachable
+      - tts_command_configured
+      - tts_command_available
+      - tts_variants_ready
+      - tts_variants_local_ready
+      - runtime_components
+      - inference_dependencies_ready
+      - inference_runtime_ready
+      - configured_models
+      - resolved_paths
+      - local_model_cache_present
+      - model_cache_state
+      - runtime_issues
+      - runtime_profiles
+      title: HealthResponse
+    JobRecord:
+      properties:
+        id:
+          type: string
+          title: Id
+        status:
+          $ref: '#/components/schemas/JobStatus'
+          default: queued
+        request:
+          $ref: '#/components/schemas/PipelineRequest'
+        result:
+          anyOf:
+          - $ref: '#/components/schemas/PipelineResult'
+          - type: 'null'
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+      type: object
+      required:
+      - request
+      title: JobRecord
+    JobStatus:
+      type: string
+      enum:
+      - queued
+      - running
+      - completed
+      - failed
+      title: JobStatus
+    ModelCacheState:
+      properties:
+        expected_path:
+          type: string
+          title: Expected Path
+        exists:
+          type: boolean
+          title: Exists
+        has_snapshots:
+          type: boolean
+          title: Has Snapshots
+        has_incomplete:
+          type: boolean
+          title: Has Incomplete
+        looks_usable:
+          type: boolean
+          title: Looks Usable
+        summary:
+          type: string
+          title: Summary
+      type: object
+      required:
+      - expected_path
+      - exists
+      - has_snapshots
+      - has_incomplete
+      - looks_usable
+      - summary
+      title: ModelCacheState
+    PipelineRequest:
+      properties:
+        target_variant:
+          $ref: '#/components/schemas/VariantCode'
+          default: sme
+        target_voice:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Voice
+        source_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Text
+        include_phonemes:
+          type: boolean
+          title: Include Phonemes
+          default: true
+        include_audio:
+          type: boolean
+          title: Include Audio
+          default: true
+      type: object
+      title: PipelineRequest
+    PipelineResult:
+      properties:
+        transcript_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Transcript Text
+        translated_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Translated Text
+        phoneme_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phoneme Text
+        audio_requested:
+          type: boolean
+          title: Audio Requested
+          default: false
+        audio_available:
+          type: boolean
+          title: Audio Available
+          default: false
+        audio_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Audio Url
+        audio_summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Audio Summary
+        stages:
+          items:
+            $ref: '#/components/schemas/PipelineStage'
+          type: array
+          title: Stages
+      type: object
+      title: PipelineResult
+    PipelineStage:
+      properties:
+        name:
+          type: string
+          title: Name
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        summary:
+          type: string
+          title: Summary
+      type: object
+      required:
+      - name
+      - status
+      - summary
+      title: PipelineStage
+    RuntimeProfile:
+      properties:
+        key:
+          type: string
+          title: Key
+        architecture:
+          type: string
+          title: Architecture
+        accelerator:
+          type: string
+          title: Accelerator
+        container_runtime:
+          type: string
+          title: Container Runtime
+        priority:
+          type: integer
+          title: Priority
+      type: object
+      required:
+      - key
+      - architecture
+      - accelerator
+      - container_runtime
+      - priority
+      title: RuntimeProfile
+    SynthesisRequest:
+      properties:
+        text:
+          type: string
+          title: Text
+        target_variant:
+          $ref: '#/components/schemas/VariantCode'
+          default: sme
+        target_voice:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Voice
+      type: object
+      required:
+      - text
+      title: SynthesisRequest
+    SynthesisResponse:
+      properties:
+        audio_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Audio Url
+        voice:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Voice
+        capability:
+          $ref: '#/components/schemas/CapabilityLevel'
+      type: object
+      required:
+      - capability
+      title: SynthesisResponse
+    TranscriptionResponse:
+      properties:
+        transcript_text:
+          type: string
+          title: Transcript Text
+      type: object
+      required:
+      - transcript_text
+      title: TranscriptionResponse
+    TranslationRequest:
+      properties:
+        text:
+          type: string
+          title: Text
+        target_variant:
+          $ref: '#/components/schemas/VariantCode'
+          default: sme
+      type: object
+      required:
+      - text
+      title: TranslationRequest
+    TranslationResponse:
+      properties:
+        translated_text:
+          type: string
+          title: Translated Text
+      type: object
+      required:
+      - translated_text
+      title: TranslationResponse
+    TtsVoice:
+      properties:
+        variant:
+          $ref: '#/components/schemas/VariantCode'
+        variant_label:
+          type: string
+          title: Variant Label
+        voice:
+          type: string
+          title: Voice
+        label:
+          type: string
+          title: Label
+        gender:
+          type: string
+          title: Gender
+        is_default:
+          type: boolean
+          title: Is Default
+          default: false
+      type: object
+      required:
+      - variant
+      - variant_label
+      - voice
+      - label
+      - gender
+      title: TtsVoice
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    VariantCapability:
+      properties:
+        variant:
+          $ref: '#/components/schemas/VariantCode'
+        label:
+          type: string
+          title: Label
+        capability:
+          $ref: '#/components/schemas/CapabilityLevel'
+        notes:
+          type: string
+          title: Notes
+      type: object
+      required:
+      - variant
+      - label
+      - capability
+      - notes
+      title: VariantCapability
+    VariantCode:
+      type: string
+      enum:
+      - sme
+      - smj
+      - sma
+      title: VariantCode
+    VariantSummary:
+      properties:
+        code:
+          $ref: '#/components/schemas/VariantCode'
+        label:
+          type: string
+          title: Label
+      type: object
+      required:
+      - code
+      - label
+      title: VariantSummary
+servers:
+- url: http://localhost:8000
+  description: Lokal utviklingsinstans
