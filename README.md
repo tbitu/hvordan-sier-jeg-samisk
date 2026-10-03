@@ -326,6 +326,32 @@ npm run lint:web
 npm run build:web
 ```
 
+### API-kontrakt (OpenAPI)
+
+`packages/contracts/openapi.yaml` holdes i synk med FastAPI-appen av `packages/scripts/sync-openapi.sh`. Skriptet starter API-et i stub-modus på en ledig lokal port, henter `/openapi.json` fra den kjørende instansen og skriver resultatet tilbake som YAML.
+
+```bash
+npm run sync:openapi
+```
+
+Skriptet er idempotent: kontrakten skrives bare om innholdet faktisk har endret seg. Når du endrer API-et (nye ruter, endrede responsskjemaer), kjører du synkroniseringen og committer den oppdaterte kontrakten sammen med endringen.
+
+For CI kan du kjøre sjekke-modus, som feiler med en diff hvis kontrakten er utdatert:
+
+```bash
+npm run sync:openapi:check
+```
+
+Dette kan legges til som et steg i en GitHub Actions-workflow for å fange kontrakt-dreft automatisk. Skriptet krever API-avhengighetene pluss `pyyaml` (kun for synkronisering og tester, ikke for API-runtime) – begge er erklært som `test`-ekstraet:
+
+```bash
+cd apps/api && pip install -e .[test]
+```
+
+Serveren kjøres på en ledig lokal port (standardkandidater: 8000, 8123, 8234, 8345). `HSJS_SYNC_PORT` velger én eksplisitt port (1-65535) i stedet for kandidatene; da er det ingen automatisk fallback, og en opptatt port gir en hard feil. `HSJS_SYNC_WAIT_TIMEOUT` angir hvor mange sekunder skriptet venter på at serveren svarer (standard: 60).
+
+Kontrakten dekker REST-endepunktene under API-prefixet (`/api/v1`) pluss rot-endepunktet (`GET /`). Lydfiler som refereres av `audio_url`-feltene (f.eks. i `SynthesisResponse` og `PipelineResult`) serveres fra den statiske monteringen `/artifacts`. En statisk monter er ikke en OpenAPI-rute og vises derfor ikke i spesifikasjonen.
+
 ### Podman-referanseprofil
 
 ```bash
