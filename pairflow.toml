@@ -4,11 +4,15 @@ base_branch = "main"
 [defaults.agents]
 implementer = "opencode"
 implementer_model = "lmstudio/pairflow-implementer"
-reviewer = "opencode"
-reviewer_model = "lmstudio/pairflow-reviewer"
+reviewer = "reasonix"
+reviewer_model = "deepseek-flash"
 meta_reviewer = "opencode"
 meta_reviewer_model = "lmstudio/pairflow-meta-reviewer"
 
 [plan_watch.runner]
 backend = "opencode"
 idle_timeout_seconds = 1800
+
+[defaults.watchdog_timeout_minutes_by_agent]
+opencode = 120
+reasonix = 30
