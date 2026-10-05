@@ -74,6 +74,27 @@ async def slow(request: Request, call_next):
     return await call_next(request)
 """
 
+# Records the HSJS_DB_PATH the sync script gives it, once per server start, so
+# a test can assert the throwaway-DB-per-start isolation. Recording happens at
+# startup (not import): the import runs as soon as uvicorn starts, regardless of
+# whether the port bind succeeds, so import-time recording races the script's
+# kill of a port-busy attempt (whether the dead attempt records depended on
+# whether its import finished before the kill). A startup event only fires once
+# the port is bound and serving, so each successful start records exactly once
+# and a killed attempt records nothing.
+DB_PATH_RECORD_APP = """import os
+
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.on_event("startup")
+def _record_db_path():
+    with open(os.environ["HSJS_DB_PATH_RECORD"], "a", encoding="utf-8") as handle:
+        handle.write(os.environ.get("HSJS_DB_PATH", "") + "\\n")
+"""
+
 
 def _port_free(port: int) -> bool:
     with socket.socket() as probe:
@@ -439,6 +460,48 @@ class TestSyncBehavior:
         loaded = yaml.safe_load(text)
         assert loaded["info"]["title"] == "Hvordan sier jeg samisk – ÅÅÅ"
         assert loaded["info"]["description"] == "Unicode-rundtur: æøåÆØÅ og é"
+
+    def test_sync_server_uses_throwaway_db_per_start(self, fake_repo: Path, decoy, tmp_path: Path):
+        # The stated purpose of the in-scope change: the sync server's startup
+        # recovery must never fail a live dev server's in-flight jobs, so each
+        # start gets a unique throwaway DB (never the default data/jobs.db the
+        # dev server uses). The port-busy retry is the case the per-start DB
+        # exists for: the previous uvicorn's drain can still hold the file.
+        if not all(_port_free(port) for port in CANDIDATE_PORTS):
+            pytest.skip("a candidate port is busy on this host")
+        record_path = tmp_path / "db-paths.txt"
+        _install_stub_api(fake_repo, DB_PATH_RECORD_APP)
+
+        # First run: the decoy holds the first candidate, so the script
+        # retries on the next candidate (the per-start-DB retry case).
+        decoy(8000)
+        first = run_sync(
+            fake_repo,
+            extra_env={"HSJS_DB_PATH_RECORD": str(record_path)},
+            timeout=180,
+        )
+        assert first.returncode == 0, first.stderr
+        assert "Port 8000 er opptatt" in first.stderr
+
+        # Second run: another fresh start (the decoy still holds 8000, so this
+        # one retries as well).
+        second = run_sync(
+            fake_repo,
+            extra_env={"HSJS_DB_PATH_RECORD": str(record_path)},
+            timeout=180,
+        )
+        assert second.returncode == 0, second.stderr
+
+        paths = [
+            line
+            for line in record_path.read_text(encoding="utf-8").splitlines()
+            if line
+        ]
+        assert len(paths) == 2  # one recorded DB per successful server start
+        assert paths[0] != paths[1]  # a unique throwaway DB per start
+        for path in paths:
+            assert path != "data/jobs.db"
+            assert "apps/api" not in path  # never the dev server's default DB
 
 
 class TestFailureModes:

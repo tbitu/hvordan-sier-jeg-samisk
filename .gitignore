@@ -17,10 +17,12 @@ dist/
 coverage/
 .pairflow/
 
-# Runtime data
+# Runtime data (anchored: only the real runtime locations, not any data/ dir)
 models/
 .artifacts/
 downloads/
+/data/
+/apps/api/data/
 .env
 .env.*
 !.env.example

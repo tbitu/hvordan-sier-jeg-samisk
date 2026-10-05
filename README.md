@@ -71,6 +71,19 @@ Merk:
 - Når du oppdaterer installasjonskommandoer eller versjoner i dette repoet, bør versjonsvalget verifiseres mot oppstrøms webkilder først, og ikke gjettes ut fra lokal eller historisk kunnskap.
 - `Tahetorn_9B` bruker modellens egen chat-template i transformers-runtime og kan smoke-testes lokalt via prosjekt-CLI.
 
+### Jobblager og varig lagring
+
+Jobber som sendes til `/api/v1/pipeline` lagres i en jobblager som overlever omstart av API-et. Standard er `sqlite`, som skriver til `data/jobs.db` relativt arbeidsmappen (konfigulerbar med `HSJS_DB_PATH`). Sett `HSJS_JOB_STORE_BACKEND=memory` for et kun-i-minnet-lager (f.eks. for tester eller ephemere kjoringer) der jobber forsvinner ved omstart. `HSJS_JOB_STORE_BACKEND` må være `sqlite` eller `memory` (stort/lite skilles ikke); en tom verdi faller tilbake på `sqlite`, og andre verdier avvises med en klar feilmelding når innstillingene lastes (ved oppstart).
+
+Lageret åpnes ved oppstart, slik at en korrupt eller låst database gir et tydelig oppstartsfeil i stedet for en 500 på første jobbforespørsel. Jobber som var i gang (`queued`/`running`) da API-et stengte uordentlig, markeres som `failed` ved neste oppstart, siden deres bakgrunnsoppgaver er borte.
+
+Merk:
+
+- **Én API-instans per jobblager.** Oppstartsgjenopprettingen forutsetter at kun én prosess skriver i samme database. Compose-profilene monterer én delt `job-data`-volum; skal du kjøre flere replikas (`docker compose --scale api=2`) må hver replika ha sin egen `HSJS_DB_PATH` (eller sitt eget volum). Som vern mot feil konfigurert skalering sjekkes hver pågående jobb for seg ved oppstart: en jobb som en live prosess som allerede kjørte da jobben sist ble oppdatert kan ha i gang, lar være i ro (livstid på samme vert verifiseres via PID, prosessens starttidspunkt og at prosessen ikke er en zombie (defekt/ikke-henta), slik at verken et gjenbrukt PID eller en død prosess arver en død forgjengers vern; på andre vertsn via nådevinduet `HSJS_RECOVERY_GRACE_S`, standard 300 s og må være ikke-negativt (en negativ verdi avvises ved oppstart), der livstidsmarkøren oppdateres både ved skriving og via en periodisk heartbeat så lenge prosessen kjører – også når den er skrive-inaktiv), mens jobber fra døde prosesser gjenopprettes selv ved samtidige oppstarter.
+- Rader i databasen som den gjeldende modellversjonen ikke kan lese (f.eks. en statusverdi som ble fjernet i en senere versjon etter en tilbakerulling) isoleres: de logges som feil og utelates fra `GET /jobs` og `GET /jobs/{id}` i stedet for å krasje oppstarten eller gi en 500. En slik rad i en ikke-terminal status (`queued`/`running`) markeres som `failed` ved oppstartsgjenoppretting, slik at den ikke henger ikke-terminal i evighet.
+- Kan ikke jobben lagres ved `POST /api/v1/pipeline` (f.eks. låst eller full database, eller lageret er stengt under nedstenging), svarer API-et med `503` i stedet for en ukjent 500.
+- Kan ikke jobbene leses ved `GET /api/v1/jobs` eller `GET /api/v1/jobs/{id}` (f.eks. en låst database som overstiger busy-timeout-et, eller et mislykket gjenåpning av lageret), svarer API-et med `503` i stedet for en ukjent 500.
+
 ### Smoke-test av nb-whisper-large
 
 Hvis du har installert inference-avhengighetene i prosjekt-venv og vil teste ASR direkte uten API-laget:

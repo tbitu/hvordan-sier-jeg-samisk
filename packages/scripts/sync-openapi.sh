@@ -209,9 +209,19 @@ trap 'exit 143' TERM
 
 start_server() {
   local port="$1"
+  # A unique throwaway DB per start: on a port-busy retry the previous
+  # uvicorn's drain can still hold the file, and a second start's open probe
+  # would race it on the same path (a stall past the 5s busy_timeout kills the
+  # new server with "database is locked" and burns the port candidate).
+  local db_path
+  db_path="$(mktemp "${WORK_DIR}/jobs.XXXXXX")"
   (
     cd "${API_ROOT}"
+    # Isolate the sync server's job store in a throwaway DB: its startup
+    # recovery must never fail in-flight jobs of a live dev server that shares
+    # the default DB.
     HSJS_PROVIDER_STUB_MODE=true HSJS_ARTIFACTS_DIR="${WORK_DIR}/artifacts" \
+      HSJS_JOB_STORE_BACKEND=sqlite HSJS_DB_PATH="${db_path}" \
       exec python3 -m uvicorn app.main:app --host "${HOST}" --port "${port}" --log-level info
   ) >"${SERVER_LOG}" 2>&1 &
   SERVER_PID=$!

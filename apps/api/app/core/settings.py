@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Self
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,6 +24,11 @@ def _find_repo_root(api_root: Path) -> Path:
 
 API_ROOT = _find_api_root()
 REPO_ROOT = _find_repo_root(API_ROOT)
+
+# 7 days: the recovery grace horizon, mirroring the job store's marker staleness
+# bound (beyond it a peer's liveness marker is pruned and can no longer be
+# consulted), kept far below timedelta's ~292-year overflow limit.
+_MAX_RECOVERY_GRACE_S = 7 * 24 * 60 * 60
 
 
 def _resolve_repo_path(path: Path | None) -> Path | None:
@@ -55,6 +60,11 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     environment: str = "development"
     artifacts_dir: Path = Path(".artifacts")
+    job_store_backend: str = "sqlite"
+    db_path: Path = Path("data/jobs.db")
+    # Startup recovery skips failing in-flight jobs while another process has
+    # touched the same store within this window (shared-DB scale-out guard).
+    recovery_grace_s: int = 300
     provider_stub_mode: bool = True
     provider_runtime: str = "transformers"
     host: str = "0.0.0.0"
@@ -101,6 +111,47 @@ class Settings(BaseSettings):
     tts_sma_speaker_id: int = 1
     tts_sma_language_id: int = 1
     tts_sma_pace: float = 1.0
+
+    @field_validator("job_store_backend")
+    @classmethod
+    def _validate_job_store_backend(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        # A set-but-empty env var (a common .env slip) falls back to the default
+        # instead of failing startup.
+        if not normalized:
+            return "sqlite"
+        if normalized not in ("sqlite", "memory"):
+            raise ValueError("job_store_backend must be 'sqlite' or 'memory'")
+        return normalized
+
+    @field_validator("recovery_grace_s")
+    @classmethod
+    def _validate_recovery_grace_s(cls, value: int) -> int:
+        # A negative grace would put the recovery cutoff in the future, inverting
+        # the cross-host peer guard: no peer's marker could ever be fresh enough,
+        # so a live cross-host peer's in-flight jobs would be failed on every
+        # boot (the same-host PID path is unaffected, so the misconfiguration is
+        # silent on a single host).
+        if value < 0:
+            raise ValueError("recovery_grace_s must be non-negative")
+        # An unbounded grace overflows timedelta(seconds=...) in startup recovery
+        # (OverflowError fails boot) and is meaningless beyond the marker pruning
+        # horizon anyway: a peer whose marker is older than that has already been
+        # pruned, so no larger window could ever consult it. 7 days mirrors the
+        # store's marker staleness bound.
+        if value > _MAX_RECOVERY_GRACE_S:
+            raise ValueError(f"recovery_grace_s must not exceed {_MAX_RECOVERY_GRACE_S} seconds (7 days)")
+        return value
+
+    @field_validator("db_path", mode="before")
+    @classmethod
+    def _validate_db_path(cls, value: object) -> object:
+        # A set-but-empty env var (a common .env slip) would otherwise parse to
+        # Path('.') and fail startup with a RuntimeError, so it falls back to the
+        # default, mirroring the job_store_backend handling.
+        if isinstance(value, str) and not value.strip():
+            return Path("data/jobs.db")
+        return value
 
     def model_post_init(self, __context: object) -> None:
         self.artifacts_dir = _resolve_repo_path(self.artifacts_dir) or self.artifacts_dir

@@ -10,7 +10,10 @@ services:
       HSJS_HF_DEVICE: "auto"
       HSJS_HF_DTYPE: "float16"
       HSJS_ARTIFACTS_DIR: "/workspace/.artifacts"
+      # Job DB on a named volume: jobs must survive container recreation.
+      HSJS_DB_PATH: "/data/jobs.db"
     volumes:
+      - job-data:/data
       - ../../.artifacts:/workspace/.artifacts:Z
       - ~/.cache/huggingface:/root/.cache/huggingface:Z
     ports:
@@ -25,3 +28,6 @@ services:
       VITE_API_BASE_URL: http://localhost:8000/api/v1
     ports:
       - "4173:4173"
+
+volumes:
+  job-data:
